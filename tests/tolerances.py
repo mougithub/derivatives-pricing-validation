@@ -1,6 +1,6 @@
 """
-PASS/FAIL TOLERANCES -- written BEFORE any test was run (Day 1).
-Rule: change a value only with a dated, written reason in README.md "Change log".
+PASS/FAIL TOLERANCES.
+change a value only with a dated, written reason in README.md "Change log".
 
 Note on seeds: every random stream is seeded from SEED plus a test id, so all
 results are reproducible. Do not hunt for "good" seeds.
@@ -49,7 +49,7 @@ ANTITHETIC_SE_RATIO_MAX = 0.95  # antithetic SE / plain SE at equal N, ATM call
 MC_ASIAN_N_FIX = 12             # monthly fixings
 
 
-# ================= Day 2: PDE layer (written BEFORE the solver existed) =================
+# ================= PDE layer (written BEFORE the solver existed) =================
 # Solver: Crank-Nicolson in x = ln S on a uniform grid, Dirichlet boundaries, domain
 # ln K +/- PDE_N_SD * sigma * sqrt(T). Price/Greeks at S0 by cubic-spline interpolation of grid values.
 PDE_N_SD = 6.0
@@ -73,7 +73,7 @@ PDE_KINK_ORDER_MIN = 1.5                     # ATM vanilla call, M = N refined t
 PDE_TIME_REF_N = 2560                       # reference solution for the time-error study (same spatial grid)
 
 
-# ================= Day 3: known-bad cases and Greeks (written BEFORE the code existed) =================
+# ================= known-bad cases and Greeks (written BEFORE the code existed) =================
 # ---- Barrier: discrete-monitoring bias of MC and its BGK fix; PDE vs closed form ----
 BARRIER_CASES = [(100.0, 90.0), (90.0, 95.0)]    # (K, H): H<=K branch and H>K branch; S0 = 100
 BARRIER_STEPS_GRID = [25, 50, 100, 200, 400]     # monitoring dates
@@ -116,7 +116,7 @@ DIGITAL_BIAS_REL = 1e-2            # smoothing / bump bias allowance (relative),
 DIGITAL_PATHWISE_ZERO_ABS = 1e-12  # naive pathwise delta is exactly 0 (silent failure); analytic is not
 
 
-# ================= Day 4: delta-gamma(-vega) vs full repricing (written BEFORE the book code existed) =================
+# ================= delta-gamma(-vega) vs full repricing (written BEFORE the book code existed) =================
 # Book (unit quantities): SHORT call K=110, SHORT put K=90, LONG down-and-out call K=100, H=85.  Base S0=100, REF market.
 # Instantaneous shocks: spot S0*(1+s) and additive vol sigma+v; maturity fixed. Full repricing = closed forms
 # (verified against MC and PDE on Days 1-3); a spot at or below H means the barrier is already hit (value 0).

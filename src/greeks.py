@@ -1,5 +1,5 @@
 """Greeks four ways for the vanilla call (and digital delta): analytic | bump-and-revalue with common
-random numbers | pathwise | PDE grid.  Day 4 adds the delta-gamma vs full-repricing test to this module.
+random numbers | pathwise | PDE grid.  adds the delta-gamma vs full-repricing test to this module.
 
 Estimators return Est(value, se). Bump estimators use ONE set of normals for every bumped price (CRN).
 Pathwise gamma is not provided for the call: the integrand max(S_T-K,0) has zero second derivative almost
@@ -92,7 +92,7 @@ def mc_digital_delta_pathwise_smoothed(S, K, T, r, sigma, q=0.0, n_paths=1_000_0
     return _est(np.exp(-r * T) * (np.abs(ST - K) < eps) / (2 * eps) * ST / S)
 
 
-# ======================= Day 4: delta-gamma(-vega) approximation vs full repricing =======================
+# =======================  delta-gamma(-vega) approximation vs full repricing =======================
 
 @dataclass(frozen=True)
 class Position:

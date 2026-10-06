@@ -1,4 +1,4 @@
-"""Day 3 figures. Run:  python src/plots.py   (writes to figures/, prints the numbers quoted in the README)."""
+"""   (writes to figures/, prints the numbers quoted in the README)."""
 import os, sys
 import numpy as np
 import matplotlib
@@ -126,7 +126,7 @@ def fig_greeks_four_ways():
     fig.savefig(f"{FIG}/greeks_four_ways.png", dpi=150); plt.close(fig)
 
 
-# ======================= Day 4: delta-gamma(-vega) vs full repricing =======================
+# ======================= delta-gamma(-vega) vs full repricing =======================
 PUT = Position("put", T.BOOK_STRANGLE_K[0], -1.0)
 CALL = Position("call", T.BOOK_STRANGLE_K[1], -1.0)
 DOC = Position("doc", T.BOOK_DOC_K, 1.0, T.BOOK_DOC_H)
