@@ -1,50 +1,114 @@
-# Derivatives pricing validation
+# Derivatives Pricing & Model Validation
 
-Independent validation of option pricers (analytic, Monte Carlo, PDE) against closed-form benchmarks.
-**Status: Day 1 of 4 (analytic + Monte Carlo layers).** PDE, known-bad cases, Greeks and the
-delta-gamma test follow.
+A quantitative validation framework for European, barrier, Asian, and digital options. The project compares analytic, Monte Carlo, and finite-difference PDE methods, tests numerical failure modes, validates Greek estimators, and evaluates when a delta-gamma-vega approximation remains reliable for portfolio stress testing.
 
-**Out of scope:** stochastic volatility, market calibration, production-grade performance.
-Agreement between pricers shows internal consistency, not correctness against the market.
+**Focus:** numerical methods, model validation, sensitivity analysis, and risk approximation.
 
-## Run
+> **Scope:** The project emphasizes numerical validation, convergence behavior, model sensitivities, and stress-testing reliability across a range of pricing and risk scenarios.
+
+---
+
+## Project progression
+
+The framework was developed incrementally, adding independent methods and validation layers:
+
+**Analytic benchmarks**
+Closed-form Black–Scholes prices and Greeks provide deterministic reference values and baseline consistency checks.
+
+**Monte Carlo pricing**
+Monte Carlo implementations add confidence intervals, convergence analysis, antithetic variance reduction, and validation against analytic benchmarks. Geometric Asian options provide an additional independent test case.
+
+**Finite-difference PDE pricing**
+A Crank–Nicolson solver in log-price space provides a third pricing approach, with spatial and temporal convergence studies and numerical delta/gamma estimates.
+
+**Numerical failure-mode testing**
+The framework deliberately tests cases where standard numerical methods can fail, including discrete barrier-monitoring bias, discontinuous digital payoffs, and pathwise differentiation of digital options.
+
+**Greek validation**
+Bump-and-revalue, pathwise, PDE, and analytic approaches are compared for delta, gamma, and vega, including near-expiry sensitivity to bump size.
+
+**Portfolio stress testing**
+The individual pricing and Greek components are combined into a portfolio-level delta-gamma-vega approximation and compared against full repricing across spot shocks, volatility shocks, and maturities.
+
+---
+
+## Key validation results
+
+* Monte Carlo RMSE convergence follows the expected (N^{-1/2}) behavior, with fitted slopes of approximately **-0.50**.
+* Antithetic sampling reduces standard error to **0.747×** the plain-Monte-Carlo value at equal path count.
+* Crank–Nicolson shows approximately **second-order spatial and temporal convergence** in the tested smooth regime.
+* Vanilla PDE prices agree with analytic benchmarks to better than **(7\times10^{-5})** relative error in the tested cases.
+* PDE delta/gamma errors remain below approximately **(3\times10^{-5})** for the tested vanilla cases.
+* Barrier Monte Carlo demonstrates substantial discrete-monitoring bias, reaching as high as **74 standard errors** in the near-barrier test; the BGK correction removes most of the bias away from the barrier.
+* Four Greek-estimation approaches are compared: **analytic, bump-and-revalue, pathwise, and PDE**.
+* Near expiry, a fixed 1% spot bump produces a measurable gamma bias, while scaling the bump with (S\sigma\sqrt{T}) substantially improves the estimate.
+* For the portfolio stress test, delta-gamma-vega approximation error scales approximately with the **cube of the spot shock**, with fitted slopes of **3.03–3.04**.
+* The tested approximation remains reliable over a larger shock range for longer maturities, while the reliability frontier contracts substantially at **(T=0.05)**.
+
+Detailed numerical results, tolerances, tables, and validation methodology are documented in **[`report.md`](report.md)**.
+
+---
+
+## Important failure cases
+
+The project intentionally includes cases where a numerical method gives a misleading result.
+
+### Discrete barrier monitoring
+
+Naive discrete monitoring systematically overprices a continuously monitored down-and-out option because barrier crossings between monitoring dates are missed. The **Broadie–Glasserman–Kou correction** substantially reduces this bias, but becomes unreliable when the spot is very close to the shifted barrier.
+
+### Crank–Nicolson with digital payoffs
+
+Plain Crank–Nicolson can develop severe oscillations for discontinuous digital payoffs when the time grid is too coarse relative to the spatial grid. In the tested coarse-grid case, gamma error reached approximately **20× the true peak**. Rannacher time stepping suppresses the oscillation.
+
+### Pathwise digital delta
+
+A naive pathwise derivative of a digital payoff returns **exactly zero**, with zero estimated standard error, despite the true delta being nonzero. A smoothed-payoff estimator recovers the correct behavior.
+
+These cases are included to demonstrate that **passing a numerical test is not enough; the test itself must target the relevant failure mode.**
+
+---
+
+## Figures
+
+Generated analysis includes:
+
+* `figures/mc_convergence.png` — Monte Carlo convergence and variance reduction
+* `figures/pde_convergence.png` — PDE convergence behavior
+* `figures/barrier_monitoring_bias.png` — discrete barrier-monitoring bias
+* `figures/barrier_near_barrier.png` — BGK behavior near the barrier
+* `figures/digital_pde_oscillation.png` — Crank–Nicolson digital-payoff oscillations
+* `figures/digital_delta.png` — digital delta estimator comparison
+* `figures/greeks_four_ways.png` — comparison of Greek estimation methods
+* `figures/dg_error_vs_shock.png` — delta-gamma approximation error versus spot shock
+* `figures/dg_pnl_curves.png` — approximate versus fully repriced P&L
+* `figures/dg_error_heatmap.png` — portfolio approximation error across shocks
+* `figures/dg_leg_errors.png` — leg-level contribution to approximation error
+
+---
+
+## Project structure
+
+```text
+derivatives-pricing-validation/
+├── src/
+│   ├── analytic.py
+│   ├── mc_pricer.py
+│   ├── pde_pricer.py
+│   ├── exotics.py
+│   ├── convergence.py
+│   ├── greeks.py
+│   └── plots.py
+├── tests/
+├── figures/
+├── report.md
+├── README.md
+└── requirements.txt
 ```
-pip install -r requirements.txt
-pytest -s            # ~15 s; -s prints coverage / slope / SE-ratio values
+
+ `src/` contains the pricing and analysis methods, while `tests/` contains the numerical validation and acceptance criteria.
+
+---
 ```
-All tolerances live in `tests/tolerances.py` and were written before any test was run.
-Seeds are derived from `SEED = 20261005` plus a test id.
 
-## Day 1 results
-| Check | Criterion (pre-set) | Observed |
-|---|---|---|
-| Put-call parity, 180-point grid | abs < 1e-10 | pass |
-| Price bounds, monotonicity, sigma/T limits | see `tolerances.py` | pass |
-| Analytic delta/gamma/vega vs central FD | rel < 1e-5 | pass |
-| Barrier: branch continuity at H=K, H->0, H->S, in+out=vanilla | 1e-9 / 1e-8 / 1e-3 | pass |
-| Barrier closed form vs independent MC (BGK, 200 steps), both branches | within 4 SE | z = -0.1, -1.1 |
-| Geometric Asian: parity, n=1 equals European, discrete -> continuous | 1e-10 / 1e-10 / 1e-3 rel | pass |
-| MC vs analytic (N=1e6, plain and antithetic, call and put) | within 3 SE | pass |
-| MC 95% CI coverage (1000 seeds x 20k paths) | 93%-97% | plain 94.5%, antithetic 95.3% |
-| MC RMSE log-log slope | -0.55 to -0.45 | plain -0.497, antithetic -0.488 |
-| Antithetic SE / plain SE (equal N) | < 0.95 | 0.747 |
-| Geometric Asian MC vs exact discrete closed form | within 3 SE | pass |
-
-Figure: `figures/mc_convergence.png`.
-
-## Notes on the pricers
-* Antithetic SE is computed on pair averages (the i.i.d. units), not on all 2m payoffs.
-* Geometric Asian is exact for discrete monitoring (fixings at iT/n); `n_fix=None` gives the Kemna-Vorst continuous limit.
-* Barrier closed form is continuous monitoring, zero rebate. **TODO before relying on it:** check one
-  value against a trusted reference (e.g. Haug's tables). Day 1 evidence is internal consistency plus
-  the independent MC cross-check above.
-
-## Change log
-* **Day 1 (before running):** coverage test uses 1000 seeds instead of 200. With 200 seeds the binomial
-  SD of observed coverage is 1.5 points, so a correct pricer fails a 93-97% band about 14% of the time;
-  with 1000 seeds it is about 0.3%.
-* **Day 1 (test fix, tolerances unchanged):** barrier continuity test compared points 2e-9 apart on a
-  curve with slope -0.7, so the test itself produced a 1.35e-9 gap; points are now 2e-12 apart.
-* **Day 1 (test fix, tolerances unchanged):** BGK barrier shift in the MC cross-check had the wrong sign.
-  To approximate a continuous down barrier with discrete monitoring, shift the barrier toward spot
-  (`H*exp(+0.5826*sigma*sqrt(dt))`). The wrong sign doubled the bias and was caught by the cross-check.
+For the detailed methodology, numerical results, see **[`report.md`](report.md)**.
