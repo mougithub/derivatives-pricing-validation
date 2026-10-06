@@ -72,3 +72,13 @@ def digital_call_price(S, K, T, r, sigma, q=0.0, payout=1.0):
     srt = sigma * np.sqrt(T)
     d2 = (np.log(S / K) + (r - q - 0.5 * sigma**2) * T) / srt
     return float(payout * np.exp(-r * T) * N(d2))
+
+def digital_call_greeks(S, K, T, r, sigma, q=0.0, payout=1.0):
+    """Analytic delta and gamma of the cash-or-nothing call (S may be an array)."""
+    S = np.asarray(S, dtype=float)
+    srt = sigma * np.sqrt(T)
+    d2 = (np.log(S / K) + (r - q - 0.5 * sigma**2) * T) / srt
+    pdf, disc = norm.pdf(d2), np.exp(-r * T)
+    delta = payout * disc * pdf / (S * srt)
+    gamma = -payout * disc * pdf / (S**2 * srt) * (1.0 + d2 / srt)
+    return dict(delta=delta, gamma=gamma)

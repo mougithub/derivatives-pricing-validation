@@ -81,3 +81,35 @@ def mc_asian(S, K, T, r, sigma, q=0.0, kind="call", n_fix=12, average="geometric
         z = rng.standard_normal((n_paths, n_fix))
         units = _asian_payoff(z, S, K, T, r, sigma, q, kind, average)
     return _summarize(units, np.exp(-r * T), n_paths, antithetic, seed)
+
+BGK_BETA = 0.5826   # Broadie-Glasserman-Kou constant, -zeta(1/2)/sqrt(2*pi)
+
+
+def _barrier_core(S, K, H, T, r, sigma, q, n_steps, n_paths, shifts, seed):
+    """Discretely monitored down-and-out call, n_steps equally spaced monitoring dates, exact GBM steps.
+    One simulation is used for every barrier in `shifts`: barrier_i = H * exp(shift_i * BGK_BETA * sigma*sqrt(dt)).
+    shift = 0 is the naive discrete barrier; shift = +1 moves the barrier TOWARD the spot, which makes the
+    discrete price approximate the CONTINUOUS one (BGK)."""
+    rng = np.random.default_rng(seed)
+    dt = T / n_steps
+    sq = sigma * np.sqrt(dt)
+    drift = (r - q - 0.5 * sigma**2) * dt
+    barriers = [H * np.exp(sh * BGK_BETA * sq) for sh in shifts]
+    St = np.full(n_paths, float(S))
+    alive = [np.full(n_paths, S > b) for b in barriers]
+    for _ in range(n_steps):
+        St *= np.exp(drift + sq * rng.standard_normal(n_paths))
+        for i, b in enumerate(barriers):
+            alive[i] &= St > b
+    intrinsic = np.maximum(St - K, 0.0)
+    return [_summarize(np.where(a, intrinsic, 0.0), np.exp(-r * T), n_paths, False, seed) for a in alive]
+
+
+def mc_down_and_out_call(S, K, H, T, r, sigma, q=0.0, n_steps=50, n_paths=300_000, bgk=False, seed=0):
+    return _barrier_core(S, K, H, T, r, sigma, q, n_steps, n_paths, [1.0 if bgk else 0.0], seed)[0]
+
+
+def mc_down_and_out_call_pair(S, K, H, T, r, sigma, q=0.0, n_steps=50, n_paths=300_000, seed=0):
+    """(naive, bgk) from the SAME simulated paths."""
+    naive, bgk = _barrier_core(S, K, H, T, r, sigma, q, n_steps, n_paths, [0.0, 1.0], seed)
+    return naive, bgk
