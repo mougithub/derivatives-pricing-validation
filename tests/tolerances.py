@@ -47,3 +47,26 @@ SLOPE_LOW, SLOPE_HIGH = -0.55, -0.45
 ANTITHETIC_SE_RATIO_MAX = 0.95  # antithetic SE / plain SE at equal N, ATM call
 
 MC_ASIAN_N_FIX = 12             # monthly fixings
+
+# ================= : PDE layer  =================
+# Solver: Crank-Nicolson in x = ln S on a uniform grid, Dirichlet boundaries, domain
+# ln K +/- PDE_N_SD * sigma * sqrt(T). Price/Greeks at S0 by cubic-spline interpolation of grid values.
+PDE_N_SD = 6.0
+PDE_FINE_M, PDE_FINE_N = 800, 800
+PDE_SPOTS = [80.0, 90.0, 100.0, 110.0, 120.0]
+
+PDE_PRICE_REL = 1e-4            # vs analytic, vanilla call and put, fine grid (plan: < 1e-4)
+PDE_PARITY_ABS = 1e-4           # C_pde - P_pde vs S e^{-qT} - K e^{-rT}
+PDE_DELTA_REL = 1e-3            # grid delta vs analytic (plan: < 1e-3 away from singularities)
+PDE_GAMMA_REL = 1e-2            # grid gamma vs analytic (looser: second derivative of a kinked payoff)
+PDE_DOMAIN_ABS = 1e-6           # price change when the domain is widened 6 -> 9 sd at equal dx
+
+# Observed order of convergence. Smooth payoff = S^2 (exact solution known, exact Dirichlet data).
+# The vanilla call has a kink (at a grid node when S0=K), so it is NOT the smooth case.
+PDE_ORDER_LOW, PDE_ORDER_HIGH = 1.85, 2.15   # smooth payoff, space and time separately
+PDE_SPACE_M_GRID = [50, 100, 200, 400]       # with N = PDE_SPACE_N (time error negligible)
+PDE_SPACE_N = 10_000
+PDE_TIME_N_GRID = [10, 20, 40, 80, 160]      # with M = PDE_TIME_M (space error negligible)
+PDE_TIME_M = 4_000
+PDE_KINK_ORDER_MIN = 1.5                     # ATM vanilla call, M = N refined together: reported, floor only
+PDE_TIME_REF_N = 2560                       # reference solution for the time-error study (same spatial grid)
